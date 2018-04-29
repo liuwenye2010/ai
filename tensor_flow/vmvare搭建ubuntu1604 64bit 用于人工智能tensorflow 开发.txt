@@ -1,0 +1,267 @@
+vmvare搭建ubuntu1604 64bit 用于人工智能tensorflow 开发
+
+ (0) 安装ubuntu的时候地点选择了US,那么以后apt-get的时候，就会默认从us的服务器去获取软件（virtualbox那边的虚拟机选择了chengdu(cn))
+  可以更改镜像园：参考https://blog.csdn.net/qq_35078631/article/details/76128075
+  sudo cp /etc/apt/sources.list /etc/apt/sources.list_backup
+  sudo gedit /etc/apt/sources.list  // cn.archive.ubuntu.com      
+  
+  # deb http://mirrors.163.com/ubuntu/ trusty main restricted universe multiverse
+  # deb http://archive.ubuntu.com/ubuntu/ trusty main restricted universe multiverse //官方
+  主意：一定要选对版本 然后，刷新列表:
+  sudo apt-get update
+
+ (0) 确保vmvware相关的service已经打开，这样才能够联网，（不能联网，啥事都不好弄啊）　
+ https://www.cnblogs.com/teyues/p/6092843.html
+ (lwy)vmvare服务必须打开才能让虚拟机上网.jpg
+ 
+（建议使用bridage 模式）
+ 
+
+（1） vmvare 配置共享文件
+
+
+（2） 安装vim 
+
+//安装vim  https://www.linuxidc.com/Linux/2017-01/139564.htm
+sudo apt-get install vim 
+//配置vim (...)
+vi ~/.vimrc
+基本配置[1] [2]
+
+"开启语法高亮
+syntax on
+"依文件类型设置自动缩进
+filetype indent plugin on
+ 
+"显示当前的行号列号：
+set ruler
+"在状态栏显示正在输入的命令
+set showcmd
+ 
+"关闭/打开配对括号高亮
+"NoMatchParen
+DoMatchParen
+行号的显示与隐藏[3]：
+
+"显示行号：
+set number
+"为方便复制，用<F2>开启/关闭行号显示:
+nnoremap <F2> :set nonumber!<CR>:set foldcolumn=0<CR>
+启用Modeline（即允许被编辑的文件以注释的形式设置Vim选项，详见Vim Wiki: Modeline magic）[4]：
+
+set modeline
+如果终端使用的是深色背景：
+
+"为深色背景调整配色
+set background=dark
+
+//配置~/.bashrc 
+vim ~/.bashrc 
+
+//当前用户无密码
+sudo vim /etc/sudoers //建议使用sudo visudo 
+johl    ALL=(ALL)	NOPASSWORD: ALL
+
+sudoers文件被损坏后无法访问 
+
+
+
+//确认网络可以访问，默认NAT模式下可以访问网络， 但是需要配置为Brighdage 模式以获得独立的IP地址？(vmvare下用了NAT模式也可以) 
+设备--网络-网络..-->网卡1—— 桥接模式 。 之后ubuntu会自动重新建立网络连接（会有promt提示）,之后ifconfig可以 看到ip地址
+考虑要不要设置静态的IP地址？？？？
+
+//telnet, ssh　访问减少资源暂用！
+
+
+//安装ssh，配置开机启动（默认已启动）  https://blog.csdn.net/u010447234/article/details/53557795
+查看是否
+ps -e | grep ssh*
+安装ssh server
+apt-get install openssh-server
+安装client 
+apt-get install openssh-client
+确认安装好，是否启动， 否则   /etc/init.d/ssh start  或者sudo service ssh start
+ps -e | grep sshd
+如果已经启动，则可以通过putty来访问ubuntu了
+用户名johl,密码xxxxxx,ip 192.168.2.101(depend)
+
+https://blog.csdn.net/gatieme/article/details/45251389
+//安装sysv-rc-conf 替代chkconfig、rcconf 来配置 ,sudo apt-get install chkconfig
+sudo apt-get install sysv-rc-conf 
+sudo sysv-rc-conf 
+runlevel   //切换运行级别用init 0 关机，init 6 重启， init 3 (无图形界面) ， init 5(图形界面)
+
+
+0 停机
+
+1 单用户，Does not configure network interfaces, start daemons, or allow non-root logins
+
+2 多用户，无网络连接 Does not configure network interfaces or start daemons
+
+3 多用户，启动网络连接 Starts the system normally.
+
+4 用户自定义
+
+5 多用户带图形界面
+
+6 重启
+
+
+//开启telnet服务：  https://blog.csdn.net/l370398095/article/details/70598632
+安装openbsd-inetd
+sudo apt-get install openbsd-inetd
+安装telnetd
+sudo apt-get install telnetd
+重启openbsd-inetd
+sudo /etc/init.d/openbsd-inetd restart
+查看telnet运行状态
+sudo netstat -a | grep telnet
+登录
+telnet IP address    （用户名johl. password xxxxxxx)
+
+
+//WinScp方式访问Ubuntu ,无密码访问配置，主要是配置sudoers (这个参考前面)，WinSCP依赖SSH，只要ssh服务可用了，问题就不大了
+winspcp 下直接连接ubuntu，深入用户名和密码就可以了！  
+
+
+//配置samba 服务，windows 下访问ubuntu 目录
+https://www.linuxidc.com/Linux/2016-12/138498.htm
+https://blog.csdn.net/hy245120020/article/details/75675829
+
+sudo apt-get install samba
+sudo service smb start
+sudo apt-get install smbclient
+sudo cp /etc/samba/smb.conf /etc/samba/smb.conf.bak
+sudo vim /etc/samba/smb.conf 
+往文件里copy 
+[share]
+comment = Share Folder require password
+browseable = yes
+path = /home/share
+create mask = 0777
+directory mask = 0777
+valid users = share
+force user = nobody
+force group = nogroup
+public = yes
+writable = yes
+available = yes
+
+重启samba
+sudo /etc/init.d/samba restart
+建立共享目录，授予777可读可写权限
+sudo mkdir /home/share
+sudo chmod 777 /home/share
+建立用户
+sudo groupadd share -g 6000
+sudo useradd share -g 6000 -s /shin/nologin -d /dev/null 　//系统添加一个share一个用户
+sudo  smbpasswd -a share   // samba添加一个用户share 输入密码 xxxxxxx 
+
+#windows下访问
+\\192.168.10.129\share  
+输入用户名 share ,密码  可以访问共享文件
+
+
+
+#安装svn 服务器/客户端
+sudo apt-get install  subversion 
+#SVN 常用的几个命令
+https://blog.csdn.net/yangzhongxuan/article/details/7018168
+
+
+#暗转git服务器与客户端 
+sudo apt-get install git
+git 
+git  config --global user.name   "liuwenye2010"
+git  config --global user.emial   "234781363@qq.com"
+//安装GUI工具GitKraken  ?   
+(下载离线安装包，然后通过samba 文件夹放到/home/share 目录下   )  下载：
+https://www.gitkraken.com/download/linux-deb
+//安装
+sudo dpkg -i gitkraken-amd64.deb 
+
+
+#安装anaconda (含python )
+从官网或者清华镜像网上下载anaconda3 4.2.0-x86-64.sh 然后通过wincsp 上传到/home/share文件夹
+https://mirrors.tuna.tsinghua.edu.cn/anaconda/archive/
+
+cd /home/share
+sudo bash ./Anaconda3-4.2.0-Linux-x86_64.sh
+
+# 将anaconda的bin目录加入PATH，根据版本不同，也可能是~/anaconda2/bin
+echo 'export PATH="~/anaconda3/bin:$PATH"' >> ~/.bashrc
+# 更新bashrc以立即生效
+source ~/.bashrc
+# Conda的环境管理功能允许我们同时安装若干不同版本的Python，并能自由切换。对于上述安装过程，假设我们采用的是Python 2.7对应的安装包，那么Python 2.7就是默认的环境（默认名字是root，注意这个root不是超级管理员的意思）。
+
+# 创建一个名为tenseorflow的环境，指定Python版本是3.5
+conda create --name tensorflow python=3.5
+# 安装好后，使用activate激活某个环境
+source activate tensorflow # for Linux & Mac
+# 激活后，会发现terminal输入的地方多了tensorflow 的字样，实际上，此时系统做的事情就是把默认2.7环境从PATH中去除，再把3.5对应的命令加入PATH
+# 此时，再次输入
+python --version
+# 可以得到`Python 3.5.3 :: Continuum Analytics, Inc.`
+## 如果想返回默认的python 2.7环境，运行
+#source deactivate tensorflow# for Linux & Mac
+#可以得到`Python 2.7.13 :: Anaconda 4.3.1 (64-bit)`
+###！！如果要 删除一个已有的环境
+#conda remove --name tensorflow --all
+用户安装的不同python环境都会被放在目录~/anaconda/envs下，可以在命令中运行conda info -e查看已安装的环境，当前被激活的环境会显示有一个括号。
+conda info -e
+
+#安装好后，建议更新所有的安装包
+conda upgrade –all  
+
+conda install package_name 进行安装新包， 
+conda remove package_name 删除包 
+conda update package_name 更新包 
+conda list  #查看所有的包
+conda search search_item 进行模糊查找。
+
+
+对虚拟环境中安装额外的包。
+使用命令conda install -n your_env_name [package]即可安装package到your_env_name中
+设置国内镜像（加快下载速度）
+conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/free/
+# 设置搜索时显示通道地址
+conda config --set show_channel_urls yes
+
+
+##TensorFlow安装
+方法（1） #conda install -n tensorflow -c https://conda.anaconda.org/jjhelmus tensorflow
+##Tensorflow的安装
+方法（2）(注意不需要root的原因是环境不是root下，不属于root)
+pip install --upgrade https://storage.googleapis.com/tensorflow/linux/cpu/tensorflow-1.0.0rc0-cp35-cp35m-linux_x86_64.whl
+
+#tensorflow安装完毕之后，简单测试一下
+$ python
+>>> import tensorflow as tf
+>>> hello = tf.constant('Hello, TensorFlow!')
+>>> sess = tf.Session()
+>>> print(sess.run(hello))  # python 2.7  print  sess.run(hello)  
+Hello, TensorFlow!
+>>> a = tf.constant(10)
+>>> b = tf.constant(32)
+>>> print(sess.run(a+b))
+42
+>>>
+
+以后每一次使用python 都需要激活环境 
+
+source activate tensorflow # for Linux & Mac
+
+
+#安装sublime
+添加sublime的仓库
+sudo add-apt-repository ppa:webupd8team/sublime-text-3
+更新软件库
+sudo apt-get update 
+安装sublime
+sudo apt-get install sublime-text-installer
+然后我们就有可爱的sublime text啦~
+
+
+
+
+
