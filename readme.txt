@@ -20,7 +20,7 @@ git push -u origin master
 
 
 
--------------------------------------------------------
+----------------------if you using command ---------------------------
 (status)
 git status -s 
 git status 
@@ -28,9 +28,15 @@ git status
 
 (add)
 
-git add 
+git add ./ 
+
 
 (commit)
 
+git commit -m "ai tensor flow first time commit"
+
 (push)
 
+
+
+----------------------------if you using gui ----------------------------------
